@@ -27,7 +27,7 @@ def getRadMap(pLayoutId = referenceLayout ) :
 	moduleMap = tkLayout + pLayoutId + '/sensorsIrradiationOuter.csv'
 	s=requests.get(moduleMap).content
 	return pd.read_csv(io.StringIO(s.decode('utf-8'))) 
-	
+
 def getMap(pLayoutId = referenceLayout, pSide = 'positive') : 
     cablingMap = tkLayout + pLayoutId + '/ModulesToDTCs' + ("Pos" if (pSide == 'positive') else "Neg") + 'Outer.csv'
     s=requests.get(cablingMap).content
@@ -45,6 +45,18 @@ def getCablingMap( pLayoutId = referenceLayout ) :
 	cMap[df_obj.columns] = df_obj.apply(lambda x: x.str.strip())
 	#cMap[df_obj.columns] = df_obj.apply(lambda x : "_".join( x.str.split() ) )
 	return cMap 
+
+def mergeMaps( pLayoutId = referenceLayout ) : 
+	cCablingMap = getCablingMap(pLayoutId)
+	cRadMap = getRadMap(pLayoutId) 
+	cMerged = pd.merge(cCablingMap, cRadMap, how='inner', on="Module DetId")
+    # min fluence 
+	df = cMap.groupby('Module DetId').min().add_suffix('min').reset_index()
+	print(df.columns())
+	#df = cMerged.loc[:, ['Module DetId',]]
+	return cMerged
+
+
 
 def countModules(pLayoutId = referenceLayout , modType = "PS10G") :
 	cMap = getCablingMap(pLayoutId)
