@@ -50,11 +50,11 @@ def mergeMaps( pLayoutId = referenceLayout , modType = "PS10G" ) :
 	cCablingMap = getCablingMap(pLayoutId)
 	cRadMap = getRadMap(pLayoutId) 
 	cMerged = pd.merge(cCablingMap, cRadMap, how='inner', on="Module DetId")
-	df =  cMerged.loc[cMerged['DTC name'].str.contains(modType)].loc[:, ['DTC CMSSW Id', 'DTC name', ' sensorsFluenceMean_Hb',' sensorsFluenceMax_Hb']]
+	df =  cMerged.loc[cMerged['DTC name'].str.contains(modType)].loc[:, ['DTC CMSSW Id',' sensorsFluenceMean_Hb',' sensorsFluenceMax_Hb']]
 	# min fluence (mean and max)
 	df_min  = df.groupby('DTC CMSSW Id').min().add_suffix('min').reset_index()
 	df_max  = df.groupby('DTC CMSSW Id').max().add_suffix('max').reset_index()
-	df_mean = df.groupby('DTC CMSSW Id').mean().add_suffix('max').reset_index()
+	df_mean = df.groupby('DTC CMSSW Id').mean().add_suffix('mean').reset_index()
 	# module count 
 	df1 = cMerged.loc[:, ['DTC CMSSW Id']]
 	df1['Module Count'] = np.zeros(len(cMerged))
@@ -62,7 +62,7 @@ def mergeMaps( pLayoutId = referenceLayout , modType = "PS10G" ) :
 	# then merge with module count 
 	df_m1 = pd.merge(df1, df_min, how='inner', on="DTC CMSSW Id")
 	df_m2 = pd.merge(df_m1, df_max, how='inner', on="DTC CMSSW Id")
-	return pd.merge(df_mean, df_max, how='inner', on="DTC CMSSW Id")
+	return pd.merge(df_m2, df_mean, how='inner', on="DTC CMSSW Id")
 
 	
 
