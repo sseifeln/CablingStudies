@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 tkLayout = 'http://ghugo.web.cern.ch/ghugo/layouts/T15/'
 #tkLayout='http://cms-tklayout.web.cern.ch/cms-tklayout/layouts/reference/'
 
+referenceLayoutIT = 'http://ghugo.web.cern.ch/ghugo/layouts/it_cabling/OT800_IT701_cabling'
 referenceLayout='OT616_200_IT613'
 #referenceLayout='OT616_IT613'
 phiSectorName = 'DTC Phi Sector Ref'
@@ -32,6 +33,16 @@ def getMap(pLayoutId = referenceLayout, pSide = 'positive') :
     cablingMap = tkLayout + pLayoutId + '/ModulesToDTCs' + ("Pos" if (pSide == 'positive') else "Neg") + 'Outer.csv'
     s=requests.get(cablingMap).content
     return pd.read_csv(io.StringIO(s.decode('utf-8'))) 
+
+def getCablingMapIT (pLayoutId = referenceLayoutIT ) :
+	cablingMap = pLayoutId + '/InnerTrackerModulesToDTCs.csv'
+	s=requests.get(cablingMap).content
+	cMap = pd.read_csv(io.StringIO(s.decode('utf-8')))
+	cColNames = [s.strip().split('/', 1)[0] for s in list(cMap.columns)]
+	cMap = cMap.set_axis(cColNames, axis=1, inplace=False)
+	df_obj = cMap.select_dtypes(['object'])
+	cMap[df_obj.columns] = df_obj.apply(lambda x: x.str.strip())
+	return cMap 
 
 def getCablingMap( pLayoutId = referenceLayout ) :
 	cMapPositive = getMap(pSide = 'positive')
@@ -64,9 +75,19 @@ def mergeMaps( pLayoutId = referenceLayout , modType = "PS10G" ) :
 	df_m2 = pd.merge(df_m1, df_max, how='inner', on="DTC CMSSW Id")
 	return pd.merge(df_m2, df_mean, how='inner', on="DTC CMSSW Id")
 
+
+def countITChips( pLayoutId = referenceLayoutIT ) : 
+	cMap = getCablingMapIT(pLayoutId)
+	# number of chips 
+	df_Nchips = cMap.loc[:, ['DTC_CMSSW_Id','N_Chips_Per_Module']]
+	df_Nchips = df_Nchips.groupby(["DTC_CMSSW_Id"]).sum()
+	# number of lpGBTs 
+	df_lpGBTs = cMap.groupby('DTC_CMSSW_Id')['LpGBT_Id'].nunique()
+	df = pd.merge(df_lpGBTs, df_Nchips, how='inner', on="DTC_CMSSW_Id")
+	df.rename(columns = {'LpGBT_Id':'N_lpGBTs'}, inplace = True)
+	df.rename(columns = {'N_Chips_Per_Module':'N_CROCs'}, inplace = True)
+	return df
 	
-
-
 def countModules(pLayoutId = referenceLayout , modType = "PS10G") :
 	cMap = getCablingMap(pLayoutId)
 	df = cMap.loc[:, ['DTC CMSSW Id']]
