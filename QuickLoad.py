@@ -4,6 +4,7 @@ import io
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 tkLayout = 'http://ghugo.web.cern.ch/ghugo/layouts/T15/'
 #tkLayout='http://cms-tklayout.web.cern.ch/cms-tklayout/layouts/reference/'
 
@@ -87,7 +88,74 @@ def countITChips( pLayoutId = referenceLayoutIT ) :
 	df.rename(columns = {'LpGBT_Id':'N_lpGBTs'}, inplace = True)
 	df.rename(columns = {'N_Chips_Per_Module':'N_CROCs'}, inplace = True)
 	return df
-	
+
+# new visualizer of IT plot 
+# code based on example found online on how to draw a polar bar chart  
+# https://www.learnui.design/tools/data-color-picker.html#palette
+def drawITMap() :
+	df = countITChips()
+	df['Id']=df.index
+	# sort values by number of CROCs
+	df = df.sort_values(by=['N_CROCs'])
+	# Get key properties for colours and labels
+	max_value_full_ring = max(df['N_CROCs'])
+
+	ring_colours = ['#003f5c','#2f4b7c','#665191'
+			,'#a05195'
+			,'#d45087'
+			,'#f95d6a'
+			,'#ff7c43'
+			,'#ffa600']
+
+	ring_labels = [f'   DTC_{x}  ({v}) ' for x, v in zip(list(df['Id']), 
+													list(df['N_CROCs']))]
+	data_len = len(df)
+
+	# Begin creating the figure
+	fig = plt.figure(figsize=(4,4), linewidth=10,
+					edgecolor='#393d5c', 
+					facecolor='#25253c')
+
+	rect = [0.1,0.1,0.8,0.8]
+
+	# Add axis for radial backgrounds
+	ax_polar_bg = fig.add_axes(rect, polar=True, frameon=False)
+	ax_polar_bg.set_theta_zero_location('N')
+	ax_polar_bg.set_theta_direction(1)
+
+	# Loop through each entry in the dataframe and plot a grey
+	# ring to create the background for each one
+	for i in range(data_len):
+		ax_polar_bg.barh(i, max_value_full_ring*1.5*np.pi/max_value_full_ring, 
+						color='grey', 
+						alpha=0.1)
+	# Hide all axis items
+	ax_polar_bg.axis('off')
+		
+	# # Add axis for radial chart for each entry in the dataframe
+	ax_polar = fig.add_axes(rect, polar=True, frameon=False)
+	ax_polar.set_theta_zero_location('N')
+	ax_polar.set_theta_direction(1)
+	ax_polar.set_rgrids(np.linspace(0,27,num=28), 
+						labels=ring_labels, 
+						angle=0, 
+						fontsize=4, fontweight='bold',
+						color='white', verticalalignment='center')
+
+	# Loop through each entry in the dataframe and create a coloured 
+	# ring for each entry
+	for i in range(data_len):
+		clr = int( (list(df['N_CROCs'])[i])/100) 
+		ax_polar.barh(i, list(df['N_CROCs'])[i]*1.5*np.pi/max_value_full_ring, 
+					color=ring_colours[clr] )
+
+
+	# Hide all grid elements for the    
+	ax_polar.grid(False)
+	ax_polar.tick_params(axis='both', left=False, bottom=False, 
+					labelbottom=False, labelleft=True)
+
+	plt.show()
 def countModules(pLayoutId = referenceLayout , modType = "PS10G") :
 	cMap = getCablingMap(pLayoutId)
 	df = cMap.loc[:, ['DTC CMSSW Id']]
